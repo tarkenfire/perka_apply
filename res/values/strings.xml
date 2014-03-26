@@ -3,6 +3,19 @@
 
     <string name="app_name">Perka Application</string>
     <string name="hello_world">Hello world!</string>
+    
     <string name="action_send">Send Application</string>
-
+    <string name="action_add_resume">Add Resume</string>
+    <string name="action_add_project">Add New</string>
+    
+    <string name="hint_first_name">First name</string>
+    <string name="hint_last_name">Last name</string>
+    <string name="hint_email">Email address</string>
+    <string name="hint_position">Position applied for</string>
+    <string name="hint_explain">Explain how application was submitted</string>
+    <string name="hint_source">Position applied for</string>
+    <string name="hint_resume_placeholder">(No Resume Selected)</string>
+    
+    <string name="label_interests">Projects of Interest</string>
+    
 </resources>

@@ -1,12 +1,19 @@
 package com.hinodesoftworks.perkaapp;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,6 +24,10 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.apache.commons.io.FileUtils;
 
 public class MainActivity extends Activity {
 	
@@ -26,7 +37,18 @@ public class MainActivity extends Activity {
 	//ui handles
 	ListView projectList;
 	Button addButton;
+	TextView pathDisplay;
 	
+	EditText firstName;
+	EditText lastName;
+	EditText email;
+	EditText position;
+	EditText explain;
+	EditText source;
+	
+	protected enum InputMode{
+		MODE_RESUME, MODE_PROJECT
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -38,12 +60,11 @@ public class MainActivity extends Activity {
 					.add(R.id.container, new ApplicationFragment()).commit();
 			
 			items = new ArrayList<String>();
-		}
+		} 
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-
 		// Inflate the menu;
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
@@ -53,26 +74,69 @@ public class MainActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
 		if (id == R.id.action_send) {
+			
+			//due to internal use nature of the app, it is left to user to
+			//ensure correct data is entered and required fields are submitted.
+			
+			JSONObject objectToSend = new JSONObject();
+			
+			
+			try {
+				objectToSend.put("first_name", getStripedText(firstName));
+				objectToSend.put("last_name", getStripedText(lastName));
+				objectToSend.put("email", getStripedText(email));
+				objectToSend.put("position_id", getStripedText(position));
+				objectToSend.put("explanation", getStripedText(explain));
+				
+				JSONArray arrayToPlace = new JSONArray(items);
+				objectToSend.put("projects", arrayToPlace);
+				
+				objectToSend.put("source", getStripedText(source));
+				
+				//convert file to byte array then to base 64 string
+				File file = new File(pathDisplay.getText().toString());
+				byte[] fileBytes = FileUtils.readFileToByteArray(file);
+				String encodedFile = Base64.encodeToString(fileBytes, Base64.DEFAULT);
+				
+				objectToSend.put("resume", encodedFile);
+				
+				
+			} catch (JSONException e) {
+				e.printStackTrace();
+				Toast.makeText(this, "JSON error in data.", Toast.LENGTH_SHORT).show();
+				return false;
+			} catch (IOException e) {
+				e.printStackTrace();
+				Toast.makeText(this, "File Path error", Toast.LENGTH_SHORT).show();
+				return false;
+			}
+			
+			sendJSONObjectPOST(objectToSend);
+			
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
 	}
 	
-	public void onClick(View v)
-	{
+	public String getStripedText(EditText et){
+		return et.getText().toString().trim();
+	}
+	
+	public void onClick(View v){
 		switch (v.getId())
 		{
 		case R.id.add_new_project_button:
-			createInputDialog("Add Project", "Enter string detail for project to add to list.");
+			createInputDialog("Add Project", "Enter string detail for project to add to list.", InputMode.MODE_PROJECT);
 			break;
 		case R.id.resume_selector:
+			createInputDialog("Add Resume File", "Enter path of resume pdf file to upload", InputMode.MODE_RESUME);
 			break;
 		}
 	}
 	
 	
-	public void createInputDialog(String title, String message)
-	{
+	public void createInputDialog(String title, String message, final InputMode currentMode){
+		
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
 		alert.setTitle(title);
@@ -85,13 +149,23 @@ public class MainActivity extends Activity {
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 		public void onClick(DialogInterface dialog, int whichButton) {
 		  String value = input.getText().toString().trim();
-		  onInputResult(value);
+		  
+			  switch (currentMode)
+			  {
+				case MODE_PROJECT:
+					onInputResult(value);
+					break;
+				case MODE_RESUME:
+					onFileURLSelected(value);
+					break;
+				  
+			  }
 		  }
 		});
 
 		alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 		  public void onClick(DialogInterface dialog, int whichButton) {
-		    // Canceled.
+		    // Cancelled.
 		  }
 		});
 
@@ -99,21 +173,36 @@ public class MainActivity extends Activity {
 		
 	}
 	
-	public void onInputResult(String result)
-	{
+	public void onInputResult(String result) {
 		items.add(result);
 		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, items);
-		
-		Log.i("ADAPTER NULL CHECK", adapter == null ? "Is null" : "Is Not Null");
-		Log.i("LIST NULL CHECK", projectList == null ? "Is null" : "Is Not Null");
 		projectList.setAdapter(adapter);
 	}
 	
-	public void onFragmentLoaded()
-	{
+	public void onFileURLSelected(String fileLocation){
+		pathDisplay.setText(fileLocation);	
+	}
+	
+	public void onFragmentLoaded() {
 		projectList = (ListView) findViewById(R.id.projects_list);
 		addButton = (Button) findViewById(R.id.add_new_project_button);
+		pathDisplay= (TextView) findViewById(R.id.resume_display);
+		
+		
+		firstName = (EditText) findViewById(R.id.first_name_field);
+		lastName = (EditText) findViewById(R.id.last_name_field);
+		email = (EditText) findViewById(R.id.email_field);
+		position = (EditText) findViewById(R.id.position_id_field);
+		explain = (EditText) findViewById(R.id.explain_field);
+		source = (EditText) findViewById(R.id.source_field);
+		
 		addButton.setEnabled(true);
+	}
+	
+	public void sendJSONObjectPOST(JSONObject jsonObj){
+		
+		
+		
 	}
 	
 

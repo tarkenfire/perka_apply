@@ -120,6 +120,7 @@
 	        android:layout_weight="2"
 	        android:text="@string/action_add_project"
 	        android:onClick="onClick"
+	        android:enabled="false"
              />
         
     </LinearLayout>

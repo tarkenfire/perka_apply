@@ -13,7 +13,7 @@
     <string name="hint_email">Email address</string>
     <string name="hint_position">Position applied for</string>
     <string name="hint_explain">Explain how application was submitted</string>
-    <string name="hint_source">Position applied for</string>
+    <string name="hint_source">Source of employment learning</string>
     <string name="hint_resume_placeholder">(No Resume Selected)</string>
     
     <string name="label_interests">Projects of Interest</string>

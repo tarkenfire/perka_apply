@@ -2,6 +2,7 @@ package com.hinodesoftworks.perkaapp;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 
 import org.json.JSONArray;
@@ -28,6 +29,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
 
 public class MainActivity extends Activity {
 	
@@ -200,9 +212,42 @@ public class MainActivity extends Activity {
 	}
 	
 	public void sendJSONObjectPOST(JSONObject jsonObj){
+		HttpParams httpParams = new BasicHttpParams();
+		HttpConnectionParams.setConnectionTimeout(httpParams, 100000);
+		HttpConnectionParams.setSoTimeout(httpParams, 100000);
 		
+		final HttpClient client = new DefaultHttpClient(httpParams);
+		final HttpPost request = new HttpPost("http://requestb.in/1hfou8m1");
+		request.setHeader("Accept", "application/json");
+        request.setHeader("Content-type", "application/json");
+
+        longInfo(jsonObj.toString());
 		
-		
+		try {
+			request.setEntity(new StringEntity(jsonObj.toString()));
+			
+			new Thread(new Runnable(){
+				@Override
+				public void run() {
+					try {
+						HttpResponse response = client.execute(request);
+						
+						String responseBody = EntityUtils.toString(response.getEntity());
+						longInfo(responseBody);
+					} catch (ClientProtocolException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+				}	
+			}).start();
+
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 	}
 	
 
@@ -229,8 +274,19 @@ public class MainActivity extends Activity {
 			MainActivity parent = (MainActivity) this.getActivity();
 			parent.onFragmentLoaded();
 		}
-		
-		
+	}
+	
+	public static void longInfo(String str) 
+	{
+	    if(str.length() > 4000)
+	    {
+	        Log.i("logged", str.substring(0, 4000));
+	        longInfo(str.substring(4000));
+	    }
+	    else
+	    {
+	    	Log.i("logged", str);
+	    }
 	}
 
 }
